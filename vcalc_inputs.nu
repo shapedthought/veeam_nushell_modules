@@ -264,6 +264,7 @@ export def "cloud site" [file_name] {
       Id: $bi.Id}}
 }
 
+# Unstructured - All Workloads
 export def unstructured [file_name] {
     let data = open_file $file_name
     $data | get WorkloadMap | get NASs | get TypedWorkloads | get BaseInputs
@@ -326,6 +327,7 @@ export def "unstructured site" [file_name] {
     } }
 }
 
+# Plugins - All Workloads
 export def plugins [
     file_name
  ] {
@@ -333,6 +335,7 @@ export def plugins [
     $data | get WorkloadMap | values | skip 1 | where {|wl| $wl.Name =~ "plug-in"}
 } 
 
+# Plugins Inputs
 export def "plugins inputs" [
     file_name: string
     ] {
@@ -346,10 +349,141 @@ export def "plugins inputs" [
           DbInstanceCount: $bi.DbInstanceCount,
           SizeOfFullBackupTB: $bi.SizeOfFullBackupTB
           IncSizeGB: $bi.IncSizeGB,
+          LogSizeGB: $bi.LogSizeGB,
           NumberOfBackupChannels: $bi.NumberOfBackupChannels
         } } } }
     }
 
+# Plugins Data Properties
+export def "plugins dataproperties" [
+    file_name: string
+    ] {
+        let plugin_data = plugins $file_name 
+        $plugin_data |
+        each --flatten { |wl| $wl.TypedWorkloads |
+        each --flatten { |tw| $tw.BaseInputs |
+        each { |bi|
+        { Name: $bi.Name,
+          CompressionPercent: $bi.CompressionPercent,
+          GrowthRatePercent: $bi.GrowthRatePercent,
+          GrowthRateScopeYears: $bi.GrowthRateScopeYears,
+          BackupWindow: $bi.BackupWindow
+        } } } }
+    }
+
+# Plugins Retention
+export def "plugins retention" [file_name] {
+    let plugin_data = plugins $file_name 
+    let baseinputs = $plugin_data | 
+        each --flatten { |wl| $wl.TypedWorkloads |
+        each --flatten { |tw| $tw.BaseInputs } }
+
+    $baseinputs | each { |bi| 
+    { Name: $bi.Name,
+      Days: $bi.Days,
+      Weeklies: $bi.WeeksRetention
+    } }
+}
+
+export def "plugins protection" [file_name] {
+    let plugin_data = plugins $file_name 
+    let baseinputs = $plugin_data | 
+        each --flatten { |wl| $wl.TypedWorkloads |
+        each --flatten { |tw| $tw.BaseInputs } }
+
+    $baseinputs | each { |bi| 
+    { Name: $bi.Name,
+      Immutability: $bi.Immutability,
+      ImmutableDays: $bi.ImmutabilityDays
+    } }
+}
+
+export def "plugins site" [file_name] {
+    let plugin_data = plugins $file_name 
+    let baseinputs = $plugin_data | 
+        each --flatten { |wl| $wl.TypedWorkloads |
+        each --flatten { |tw| $tw.BaseInputs } }
+
+    $baseinputs | each { |bi| 
+    { Name: $bi.Name,
+      SiteId: $bi.SiteId,
+      SiteName: $bi.SiteName,
+      Id: $bi.Id
+    } }
+}
+
+# Replica Workloads
+export def replica [
+    file_name
+ ] {
+    let data = open_file $file_name
+    $data | get WorkloadMap | get VmReplicas | get TypedWorkloads | get BaseInputs
+}
+
+# Replica Inputs with optional totals
+export def "replica inputs" [
+    file_name: string
+    --totals
+    ] {
+        let replica_data = replica $file_name 
+        let vm_data = $replica_data | select Name InstanceCount SourceTB
+
+        if ($totals) {
+            $vm_data | math sum
+        } else {
+            $vm_data
+        }
+    }
+
+# Replica Data Properties
+export def "replica dataproperties" [file_name] {
+    let replica_data = replica $file_name 
+    $replica_data | each { |bi| 
+    { Name: $bi.Name,
+      ChangeRate: $bi.ChangeRate,
+      CompressionPercentage: $bi.CompressionPercentage,
+      GrowthRatePercent: $bi.GrowthRatePercent,
+      GrowthRateScopeYears: $bi.GrowthRateScopeYears,
+    } }
+}
+
+# Replica Retention
+export def "replica retention" [file_name] {
+    let replica_data = replica $file_name 
+    $replica_data | each { |bi| 
+    { Name: $bi.Name,
+      Retention: $bi.Retention,
+      RpoMinutes: $bi.RpoMinutes
+    } }
+}
+
+# Replica Immutability & Protection
+export def "replica site" [file_name] {
+    let replica_data = replica $file_name 
+    $replica_data | each { |bi| 
+    { Name: $bi.Name,
+      SiteId: $bi.SiteId,
+      SiteName: $bi.SiteName,
+      Id: $bi.Id
+    } }
+}
+
+# All Locations (sites)
+export def locations [
+    file_name
+ ] {
+    let data = open_file $file_name
+    $data | get Locations
+ }
+
+ # CDP Workloads - All Workloads
+ export def cdp [
+    file_name
+ ] {
+    let data = open_file $file_name
+    $data | get WorkloadMap | get CdpReplicas | get TypedWorkloads | get BaseInputs
+ ]
+ }
 
 # All Results - combines all workload types into a single output
 export def "all results" [file_name] {
@@ -359,14 +493,12 @@ export def "all results" [file_name] {
     let vm_replica_data = $data | get WorkloadMap | get VmReplicas | get TypedWorkloads
     let CdpReplica_data = $data | get WorkloadMap | get CdpReplicas | get TypedWorkloads
     let NAS_data = $data | get WorkloadMap | get NASs | get TypedWorkloads 
-    let f2t_data = $data | get WorkloadMap | get F2Ts | get TypedWorkloads
     let oracle_data = $data | get WorkloadMap | get OracleInstances | get TypedWorkloads
     let sql_data = $data | get WorkloadMap | get SqlInstances | get TypedWorkloads
-    let hanana_data = $data | get WorkloadMap | get HanaInstances | get TypedWorkloads
+    let hana_data = $data | get WorkloadMap | get HanaInstances | get TypedWorkloads
     let sap_data = $data | get WorkloadMap | get SapOracleInstances | get TypedWorkloads
     let db2_data = $data | get WorkloadMap | get Db2Instances | get TypedWorkloads
     let m365_data = $data | get WorkloadMap | get M365s | get TypedWorkloads
-    let sfdc_data = $data | get WorkloadMap | get SFDCs | get TypedWorkloads
     let aws_data = $data | get WorkloadMap | get AWSs | get TypedWorkloads
     let azure_data = $data | get WorkloadMap | get Azures | get TypedWorkloads
     let gcp_data = $data | get WorkloadMap | get GCPs | get TypedWorkloads
@@ -377,14 +509,12 @@ export def "all results" [file_name] {
         VM_Replica: $vm_replica_data,
         CDP_Replica: $CdpReplica_data,
         NAS: $NAS_data,
-        F2T: $f2t_data,
         Oracle: $oracle_data,
         SQL: $sql_data,
-        HANA: $hanana_data,
+        HANA: $hana_data,
         SAP: $sap_data,
         DB2: $db2_data,
         M365: $m365_data,
-        SFDC: $sfdc_data,
         AWS: $aws_data,
         Azure: $azure_data,
         GCP: $gcp_data

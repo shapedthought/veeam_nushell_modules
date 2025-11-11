@@ -1,4 +1,4 @@
-export def normalize-disk-capacity [disk] {
+def normalize-disk-capacity [disk] {
     if ($disk.CapacityString =~ "TB") {
         $disk.Capacity / 1024
     } else if ($disk.CapacityString =~ "MB") {

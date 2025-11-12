@@ -91,49 +91,41 @@ export def "vm dataproperties" [file_name] {
 
 # VM Retention
 export def "vm retention" [file_name] {
-    let data = open_file $file_name
+    # Returns VM retention info for the given file
     retention $file_name "VMScope"
 }
 
 # VM Immutability & Protection
 export def "vm protection" [file_name] {
-    let data = open_file $file_name
+    # Returns VM immutability & protection info
     protection $file_name "VMScope"
 }
 
 # VM Infrastructure & Platform
 export def "vm infra" [file_name] {
-    let data = open_file $file_name
+    # Returns VM infrastructure & platform info
     infra $file_name "VMScope"
 }
 
 # VM Site & Identification
 export def "vm site" [file_name] {
-    let data = open_file $file_name
-    # $data | get WorkloadMap | get VMScope | get TypedWorkloads | get BaseInputs | select Name SiteId SiteName Id
+    # Returns VM site & identification info
     site $file_name "VMScope"
 }
 
 # VM Repository & Tiers
 export def "vm repository" [file_name] {
-    let data = open_file $file_name
-    # $data | get WorkloadMap | get VMScope | get TypedWorkloads | get BaseInputs | select Name ObjectStorage Blockcloning moveCapacityTierEnabled capacityTierDays copyCapacityTierEnabled archiveTierEnabled archiveTierStandalone ArchiveTierDays IsCapTierVDCV
+    # Returns VM repository & tier info
     repository $file_name "VMScope"
 }
 
 # VM Target Resources - Disks
 export def "vm results" [file_name] {
-    let data = open_file $file_name
-    $data |  get WorkloadMap
-    | get VMScope
-    | get TypedWorkloads
-    | get TargetResources
-    | each { |resource|
-        $resource.Disks | each { |disks|
-        $disks | each { |disk| { Name: $disk.Name, CapacityTB: ($disk.Capacity / 1024) }
-        }
+    # Returns VM target resource disks with capacity in TB
+    open_file $file_name | get WorkloadMap | get VMScope | get TypedWorkloads | get TargetResources |
+    each --flatten { |resource| $resource.Disks |
+        each --flatten { |disk| { Name: $disk.Name, CapacityTB: ($disk.Capacity / 1024) } }
     }
-    } | flatten | flatten
 }
 
 export def agent [file_name] {
@@ -196,10 +188,9 @@ export def get_baseinputs [table: table] {
 export def "cloud inputs" [
     file_name: string
     ] {
-        let cloud_data = cloud $file_name
-        $cloud_data | 
+        cloud $file_name | 
         each --flatten { |wl| $wl.TypedWorkloads | 
-        each { |tw| $tw.BaseInputs | 
+        each --flatten { |tw| $tw.BaseInputs | 
         each { |bi| 
         { SiteName: $bi.SiteName,
           InstanceCount: $bi.ExpectedInstanceCount,
@@ -212,10 +203,9 @@ export def "cloud inputs" [
 
 # Cloud Data Properties
 export def "cloud dataproperties" [file_name] {
-    let cloud_data = cloud $file_name
-    $cloud_data | 
+    cloud $file_name | 
     each --flatten { |wl| $wl.TypedWorkloads | 
-    each { |tw| $tw.BaseInputs | 
+    each --flatten { |tw| $tw.BaseInputs | 
     each { |bi| 
     { SiteName: $bi.SiteName,
       Name: $bi.Name,
@@ -266,17 +256,14 @@ export def "cloud site" [file_name] {
 
 # Unstructured - All Workloads
 export def unstructured [file_name] {
-    let data = open_file $file_name
-    $data | get WorkloadMap | get NASs | get TypedWorkloads | get BaseInputs
+    open_file $file_name | get WorkloadMap | get NASs | get TypedWorkloads | get BaseInputs
 }
 
 export def "unstructured inputs" [
     file_name: string
     --totals
     ] {
-        let data = open_file $file_name
-        let workloads = unstructured $file_name
-        let nas_data = $workloads | select Name InstanceCount SourceTB
+        let nas_data = unstructured $file_name | select Name InstanceCount SourceTB
 
         if ($totals) {
             $nas_data | math sum
@@ -286,9 +273,8 @@ export def "unstructured inputs" [
     }
 
 export def "unstructured dataproperties" [file_name] {
-    let data = open_file $file_name
-    let workloads = unstructured $file_name
-    $workloads | each { |bi| 
+    unstructured $file_name | 
+    each { |bi| 
     { Name: $bi.Name,
       ChangeRate: $bi.ChangeRatePct,
       GrowthRatePercent: $bi.SourceData.YoYGrowthPct,
@@ -298,18 +284,16 @@ export def "unstructured dataproperties" [file_name] {
 }
 
 export def "unstructured retention" [file_name] {
-    let data = open_file $file_name
-    let workloads = unstructured $file_name
-    $workloads | each { |bi| 
+    unstructured $file_name | 
+    each { |bi| 
     { Name: $bi.Name,
       Days: $bi.Days
     } }
 }
 
 export def "unstructured protection" [file_name] {
-    let data = open_file $file_name
-    let workloads = unstructured $file_name
-    $workloads | each { |bi| 
+    unstructured $file_name | 
+    each { |bi| 
     { Name: $bi.Name,
       Immutability: $bi.PrimaryCopy.Repo.Immutability,
       ImmutableDays: $bi.PrimaryCopy.Repo.ImmutabilityDays
@@ -317,9 +301,8 @@ export def "unstructured protection" [file_name] {
 }
 
 export def "unstructured site" [file_name] {
-    let data = open_file $file_name
-    let workloads = unstructured $file_name
-    $workloads | each { |bi| 
+    unstructured $file_name |
+    each { |bi| 
     { Name: $bi.Name,
       SiteId: $bi.SiteId,
       SiteName: $bi.SiteName,
@@ -339,8 +322,7 @@ export def plugins [
 export def "plugins inputs" [
     file_name: string
     ] {
-        let plugin_data = plugins $file_name 
-        $plugin_data |
+        plugins $file_name |
         each --flatten { |wl| $wl.TypedWorkloads |
         each --flatten { |tw| $tw.BaseInputs |
         each { |bi|
@@ -358,8 +340,7 @@ export def "plugins inputs" [
 export def "plugins dataproperties" [
     file_name: string
     ] {
-        let plugin_data = plugins $file_name 
-        $plugin_data |
+        plugins $file_name |
         each --flatten { |wl| $wl.TypedWorkloads |
         each --flatten { |tw| $tw.BaseInputs |
         each { |bi|
@@ -373,51 +354,44 @@ export def "plugins dataproperties" [
 
 # Plugins Retention
 export def "plugins retention" [file_name] {
-    let plugin_data = plugins $file_name 
-    let baseinputs = $plugin_data | 
-        each --flatten { |wl| $wl.TypedWorkloads |
-        each --flatten { |tw| $tw.BaseInputs } }
-
-    $baseinputs | each { |bi| 
+    plugins $file_name | 
+    each --flatten { |wl| $wl.TypedWorkloads |
+    each --flatten { |tw| $tw.BaseInputs } | 
+    each { |bi| 
     { Name: $bi.Name,
-      Days: $bi.Days,
-      Weeklies: $bi.WeeksRetention
-    } }
+        Retention: $bi.Retention
+    } } }
 }
 
 export def "plugins protection" [file_name] {
-    let plugin_data = plugins $file_name 
-    let baseinputs = $plugin_data | 
-        each --flatten { |wl| $wl.TypedWorkloads |
-        each --flatten { |tw| $tw.BaseInputs } }
-
-    $baseinputs | each { |bi| 
+    plugins $file_name | 
+    each --flatten { |wl| $wl.TypedWorkloads |
+    each --flatten { |tw| $tw.BaseInputs | 
+    each { |bi| 
     { Name: $bi.Name,
-      Immutability: $bi.Immutability,
-      ImmutableDays: $bi.ImmutabilityDays
-    } }
+        Immutability: $bi.Immutability,
+        ImmutableDays: $bi.ImmutabilityDays
+    } } } }
+
 }
 
 export def "plugins site" [file_name] {
-    let plugin_data = plugins $file_name 
-    let baseinputs = $plugin_data | 
-        each --flatten { |wl| $wl.TypedWorkloads |
-        each --flatten { |tw| $tw.BaseInputs } }
-
-    $baseinputs | each { |bi| 
+    plugins $file_name | 
+    each --flatten { |wl| $wl.TypedWorkloads |
+    each --flatten { |tw| $tw.BaseInputs | 
+    each { |bi| 
     { Name: $bi.Name,
-      SiteId: $bi.SiteId,
-      SiteName: $bi.SiteName,
-      Id: $bi.Id
-    } }
+          SiteId: $bi.SiteId,
+          SiteName: $bi.SiteName,
+          Id: $bi.Id
+        } } } }
 }
 
 # Replica Workloads
 export def replica [
     file_name
  ] {
-    let data = open_file $file_name
-    $data | get WorkloadMap | get VmReplicas | get TypedWorkloads | get BaseInputs
+    open_file $file_name | get WorkloadMap | get VmReplicas | get TypedWorkloads | get BaseInputs
 }
 
 # Replica Inputs with optional totals
@@ -425,20 +399,18 @@ export def "replica inputs" [
     file_name: string
     --totals
     ] {
-        let replica_data = replica $file_name 
-        let vm_data = $replica_data | select Name InstanceCount SourceTB
+        let replica_data = replica $file_name  | select Name InstanceCount SourceTB
 
         if ($totals) {
-            $vm_data | math sum
+            $replica_data | math sum
         } else {
-            $vm_data
+            $replica_data
         }
     }
 
 # Replica Data Properties
 export def "replica dataproperties" [file_name] {
-    let replica_data = replica $file_name 
-    $replica_data | each { |bi| 
+    replica $file_name | each { |bi| 
     { Name: $bi.Name,
       ChangeRate: $bi.ChangeRate,
       CompressionPercentage: $bi.CompressionPercentage,
@@ -449,8 +421,7 @@ export def "replica dataproperties" [file_name] {
 
 # Replica Retention
 export def "replica retention" [file_name] {
-    let replica_data = replica $file_name 
-    $replica_data | each { |bi| 
+    replica $file_name | each { |bi| 
     { Name: $bi.Name,
       Retention: $bi.Retention,
       RpoMinutes: $bi.RpoMinutes
@@ -459,8 +430,7 @@ export def "replica retention" [file_name] {
 
 # Replica Immutability & Protection
 export def "replica site" [file_name] {
-    let replica_data = replica $file_name 
-    $replica_data | each { |bi| 
+    replica $file_name | each { |bi| 
     { Name: $bi.Name,
       SiteId: $bi.SiteId,
       SiteName: $bi.SiteName,
@@ -472,16 +442,14 @@ export def "replica site" [file_name] {
 export def locations [
     file_name
  ] {
-    let data = open_file $file_name
-    $data | get Locations
+    open_file $file_name | get Locations
  }
 
  # CDP Workloads - All Workloads
  export def cdp [
     file_name
  ] {
-    let data = open_file $file_name
-    $data | get WorkloadMap | get CdpReplicas | get TypedWorkloads | get BaseInputs
+    open_file $file_name | get WorkloadMap | get CdpReplicas | get TypedWorkloads | get BaseInputs
  ]
  }
 

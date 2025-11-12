@@ -12,6 +12,8 @@ Provides functions to extract and summarize capacity and compute requirements fr
 - **management-storage**: Returns a table of management server storage disks.
 - **copy-capacity**: Returns a table of copy storage disks for target repositories.
 - **backup-compute**: Returns a table of backup compute resources by location and platform.
+- **combined-capacity-rollup**: Returns a summarized table of total capacity requirements across all storage types.
+- **backup-compute-rollup**: Returns a summarized table of total backup compute resources by platform.
 
 ### vcalc_inputs.nu
 Provides functions to extract detailed workload, retention, protection, and site information from Veeam `.vscn` files.

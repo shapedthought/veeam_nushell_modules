@@ -222,7 +222,6 @@ export def "cloud dataproperties" [file_name] {
 export def "cloud retention" [file_name] {
     let cloud_data = cloud $file_name
     let baseinputs = get_baseinputs $cloud_data
-    # $baseinputs
     let vm_object_retention = $baseinputs | get VmObjectRetention | flatten 
     let db_object_retention = $baseinputs | get DbObjectRetention | flatten 
     let files_object_retention = $baseinputs | get FilesRetention | flatten
@@ -259,6 +258,7 @@ export def unstructured [file_name] {
     open_file $file_name | get WorkloadMap | get NASs | get TypedWorkloads | get BaseInputs
 }
 
+# Unstructured Inputs with optional totals
 export def "unstructured inputs" [
     file_name: string
     --totals
@@ -272,6 +272,7 @@ export def "unstructured inputs" [
         }
     }
 
+# Unstructured Data Properties
 export def "unstructured dataproperties" [file_name] {
     unstructured $file_name | 
     each { |bi| 
@@ -283,6 +284,7 @@ export def "unstructured dataproperties" [file_name] {
     } }
 }
 
+# Unstructured Retention
 export def "unstructured retention" [file_name] {
     unstructured $file_name | 
     each { |bi| 
@@ -291,6 +293,7 @@ export def "unstructured retention" [file_name] {
     } }
 }
 
+# Unstructured - Site & Identification
 export def "unstructured protection" [file_name] {
     unstructured $file_name | 
     each { |bi| 
@@ -300,6 +303,7 @@ export def "unstructured protection" [file_name] {
     } }
 }
 
+# Unstructured - Site & Identification
 export def "unstructured site" [file_name] {
     unstructured $file_name |
     each { |bi| 
@@ -363,6 +367,7 @@ export def "plugins retention" [file_name] {
     } } }
 }
 
+# Plugins Site & Identification
 export def "plugins protection" [file_name] {
     plugins $file_name | 
     each --flatten { |wl| $wl.TypedWorkloads |
@@ -375,6 +380,7 @@ export def "plugins protection" [file_name] {
 
 }
 
+# Plugins Site & Identification
 export def "plugins site" [file_name] {
     plugins $file_name | 
     each --flatten { |wl| $wl.TypedWorkloads |

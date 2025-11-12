@@ -61,6 +61,8 @@ vcalc backup-compute my_scenario.json
 vcalc backup-capacity my_scenario.json
 vcalc management-compute my_scenario.json
 vcalc management-storage my_scenario.json
+vcalc combined-capacity-rollup my_scenario.json
+vcalc backup-compute-rollup my_scenario.json
 ```
 
 ## Requirements
